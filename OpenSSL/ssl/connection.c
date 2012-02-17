@@ -870,7 +870,20 @@ ssl_Connection_bio_shutdown(ssl_ConnectionObj *self, PyObject *args)
     return Py_None;
 }
 
+#if PY_VERSION_HEX >= 0x020700A1
 
+static char ssl_Connection_shutdown_doc[] = "\n\
+Send closure alert\n\
+\n\
+:param how: one of SHUT_RD, SHUT_WR, SHUT_RDWR. This parameter is\n\
+            ignored as the underlying SSL connection can only be\n\
+            shutdown for read and write. This is only for\n\
+            compatibility with the normal socket interface.\n\
+:return: True if the shutdown completed successfully (i.e. both sides\n\
+         have sent closure alerts), false otherwise (i.e. you have to\n\
+         wait for a ZeroReturnError on a recv() method call\n\
+";
+#else
 
 static char ssl_Connection_shutdown_doc[] = "\n\
 Send closure alert\n\
@@ -879,13 +892,20 @@ Send closure alert\n\
          have sent closure alerts), false otherwise (i.e. you have to\n\
          wait for a ZeroReturnError on a recv() method call\n\
 ";
+#endif
 static PyObject *
 ssl_Connection_shutdown(ssl_ConnectionObj *self, PyObject *args)
 {
     int ret;
+#if PY_VERSION_HEX >= 0x020700A1
+    int how;
 
+    if (!PyArg_ParseTuple(args, "i:shutdown", &how))
+        return NULL;
+#else
     if (!PyArg_ParseTuple(args, ":shutdown"))
         return NULL;
+#endif
 
     MY_BEGIN_ALLOW_THREADS(self->tstate)
     ret = SSL_shutdown(self->ssl);

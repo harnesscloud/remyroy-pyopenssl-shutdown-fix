@@ -9,6 +9,10 @@ from gc import collect
 from errno import ECONNREFUSED, EINPROGRESS, EWOULDBLOCK
 from sys import platform, version_info
 from socket import error, socket
+
+if version_info >= (2, 7, 0, 'alpha', 1):
+    from socket import SHUT_WR
+
 from os import makedirs
 from os.path import join, dirname
 from unittest import main
@@ -1327,11 +1331,17 @@ class ConnectionTests(TestCase, _LoopbackMixin):
         :py:obj:`Connection.shutdown` performs an SSL-level connection shutdown.
         """
         server, client = self._loopback()
-        self.assertFalse(server.shutdown())
+        if version_info >= (2, 7, 0, 'alpha', 1):
+            self.assertFalse(server.shutdown(SHUT_WR))
+        else:
+            self.assertFalse(server.shutdown())
         self.assertEquals(server.get_shutdown(), SENT_SHUTDOWN)
         self.assertRaises(ZeroReturnError, client.recv, 1024)
         self.assertEquals(client.get_shutdown(), RECEIVED_SHUTDOWN)
-        client.shutdown()
+        if version_info >= (2, 7, 0, 'alpha', 1):
+            client.shutdown(SHUT_WR)
+        else:
+            client.shutdown()
         self.assertEquals(client.get_shutdown(), SENT_SHUTDOWN|RECEIVED_SHUTDOWN)
         self.assertRaises(ZeroReturnError, server.recv, 1024)
         self.assertEquals(server.get_shutdown(), SENT_SHUTDOWN|RECEIVED_SHUTDOWN)
